@@ -77,7 +77,7 @@ jobs:
         run: |
           mkdir -p _site/data
           cp index.html styles.css app.mjs core.mjs icon.svg _site/
-          cp data/observations.json data/observations.csv data/status.json _site/data/
+          cp data/observations.json data/observations.csv data/status.json data/archive_offers.json _site/data/
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:

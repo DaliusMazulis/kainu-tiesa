@@ -29,3 +29,14 @@ test('source and store combinations cannot be mixed',()=>{
  assert.equal(groupProducts([{...row(0),store:'Aibė'}],now).length,0);
  assert.equal(groupProducts([{...row(0),source:'https://www.rimi.lt.evil.test/e-parduotuve/lt/produktai/'}],now).length,0);
 });
+test('previous calendar month clamps end dates and uses Lithuanian date',async()=>{
+ const {previousMonthDay}=await import('./core.mjs');assert.equal(previousMonthDay(new Date('2026-11-24T12:00:00Z')),'2026-10-24');assert.equal(previousMonthDay(new Date('2026-03-31T12:00:00Z')),'2026-02-28');assert.equal(previousMonthDay(new Date('2024-03-31T12:00:00Z')),'2024-02-29');assert.equal(previousMonthDay(new Date('2026-12-31T22:01:00Z')),'2026-12-01');
+});
+test('monthly comparison uses exact day and matching conditions only',async()=>{
+ const {monthComparison}=await import('./core.mjs');const reference=new Date('2026-11-24T18:00:00Z'),latest={...row(0,'2.79'),observed_at:'2026-11-24T17:00:00Z'},earlier={...latest,price:'1.99',observed_at:'2026-10-24T09:00:00Z'};
+ const p={...latest,history:[earlier,latest]};const a=monthComparison(p,[],reference);assert.equal(a.historical.price,'1.99');assert.ok(a.change>40);
+ for(const wrong of [{...earlier,observed_at:'2026-10-23T09:00:00Z'},{...earlier,conditions:'loyalty_card'},{...earlier,channel:'in_store_offer'}])assert.equal(monthComparison({...p,history:[wrong,latest]},[],reference).historical,null);
+});
+test('real archived leaflets remain separate from observed monthly price',async()=>{
+ const {monthComparison}=await import('./core.mjs');const archives=JSON.parse(readFileSync(new URL('./data/archive_offers.json',import.meta.url)));const p={...actual.find(r=>r.product_id==='rimi:248955'),history:[]};const m=monthComparison(p,archives,now);assert.equal(m.historical,null);assert.equal(m.change,null);assert.equal(m.offers.length,1);assert.equal(m.offers[0].price,'1.19');assert.equal(m.offers[0].conditions,'loyalty_card');assert.equal(monthComparison(p,archives,new Date('2026-12-24T12:00:00Z')).offers.length,0);
+});

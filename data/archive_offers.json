@@ -1,0 +1,40 @@
+[
+  {
+    "store": "Rimi",
+    "channel": "in_store_leaflet",
+    "valid_from": "2026-10-20",
+    "valid_to": "2026-10-26",
+    "source": "https://leidiniai.rimi.lt/2026/weekly/rimi-savaitinis-leidinys-nr-43/",
+    "source_title": "Rimi savaitinis leidinys Nr. 43 (2026)",
+    "page": 1,
+    "retrieved_at": "2026-11-24T17:36:26.981819+00:00",
+    "verification": "source_text_and_visual",
+    "record_type": "published_offer",
+    "product_id": "rimi:248955",
+    "sku": "248955",
+    "name": "ROKIŠKIO sviestas, 82 % rieb., 200 g",
+    "price": "1.19",
+    "currency": "EUR",
+    "conditions": "loyalty_card",
+    "conditions_note": "Leidinio kainos žymoje pavaizduota „Mano Rimi“ kortelė."
+  },
+  {
+    "store": "Rimi",
+    "channel": "in_store_leaflet",
+    "valid_from": "2026-10-20",
+    "valid_to": "2026-10-26",
+    "source": "https://leidiniai.rimi.lt/2026/weekly/rimi-savaitinis-leidinys-nr-43/",
+    "source_title": "Rimi savaitinis leidinys Nr. 43 (2026)",
+    "page": 1,
+    "retrieved_at": "2026-11-24T17:36:26.981819+00:00",
+    "verification": "source_text_and_visual",
+    "record_type": "published_offer",
+    "product_id": "rimi:998018",
+    "sku": "998018",
+    "name": "Antienos filė su prieskoniais KITCHEN ME, 170 g",
+    "price": "2.89",
+    "currency": "EUR",
+    "conditions": "check_leaflet",
+    "conditions_note": "Pasiūlymo sąlygas ir parduotuvių išimtis tikrink leidinyje."
+  }
+]

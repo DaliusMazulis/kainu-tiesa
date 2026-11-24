@@ -28,7 +28,7 @@ export function groupProducts(rows, now = new Date()) {
 }
 export function selectProducts(products,{query='',store='',mode='all',sort='name'}={}) {
   const terms=normalize(query).split(/\s+/).filter(Boolean);
-  const out=products.filter(p=>terms.every(t=>normalize(p.name+' '+p.store+' '+p.sku).includes(t)) && (!store||p.store===store) && (mode==='all'||mode==='radar'&&p.advertised>0&&!p.stale&&!p.expired||mode==='drops'&&p.drop>0&&!p.stale&&!p.expired));
+  const out=products.filter(p=>terms.every(t=>normalize(p.name+' '+p.store+' '+p.sku).includes(t)) && (!store||p.store===store) && (mode==='all'||mode==='radar'&&p.advertised>0&&!p.stale&&!p.expired||mode==='drops'&&p.drop>0&&!p.stale&&!p.expired||mode==='archives'&&p.monthArchives?.length>0));
   return out.sort((a,b)=>sort==='price'?Number(a.price)-Number(b.price):sort==='discount'?b.advertised-a.advertised:a.name.localeCompare(b.name,'lt'));
 }
 export function windowHistory(history, days, now = new Date()) {
@@ -38,4 +38,18 @@ export function windowHistory(history, days, now = new Date()) {
 export function checkDiscount(old,current,minimum) {
   if([old,current,minimum].some(v=>v===''||v===null||!Number.isFinite(Number(v)))||Number(old)<=0||Number(minimum)<=0||Number(current)<0) return null;
   return {advertised:(1-Number(current)/Number(old))*100,observed:(1-Number(current)/Number(minimum))*100,saving:Number(minimum)-Number(current)};
+}
+
+export function previousMonthDay(now=new Date()) {
+  const [year,month,date]=ltDay(now).split('-').map(Number);
+  const first=new Date(Date.UTC(year,month-2,1));
+  const last=new Date(Date.UTC(first.getUTCFullYear(),first.getUTCMonth()+1,0)).getUTCDate();
+  return new Date(Date.UTC(first.getUTCFullYear(),first.getUTCMonth(),Math.min(date,last))).toISOString().slice(0,10);
+}
+export function monthComparison(product,archives=[],now=new Date()) {
+  const target=previousMonthDay(now);
+  const observations=(product.history||[]).filter(r=>validRow(r) && r.product_id===product.product_id && r.store===product.store && r.channel===product.channel && r.conditions===product.conditions && ltDay(new Date(r.observed_at))===target);
+  const historical=observations.sort((a,b)=>a.observed_at.localeCompare(b.observed_at))[0]||null;
+  const offers=archives.filter(r=>r && r.product_id===product.product_id && r.store===product.store && r.record_type==='published_offer' && r.currency==='EUR' && Number.isFinite(Number(r.price)) && Number(r.price)>0 && isoDay(r.valid_from) && isoDay(r.valid_to) && r.valid_from<=target && target<=r.valid_to && r.source==='https://leidiniai.rimi.lt/2026/weekly/rimi-savaitinis-leidinys-nr-43/' && r.channel==='in_store_leaflet');
+  return {target,historical,offers,change:historical?(Number(product.price)/Number(historical.price)-1)*100:null};
 }

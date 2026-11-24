@@ -53,3 +53,11 @@ Atidaryti http://localhost:8080. Testuose naudojami tikri viešo HTML išrašai 
 
 Antrame etape: praplėsta „Rimi“ imtis, prijungtas oficialių „Aibės“ kainų be kortelės nuskaitymas, pasiūlymų galiojimo žymos ir CSV eksportas. Aktualūs rinkimo skaičiai visada pateikiami `data/status.json`.
 Antrame etape patikrinta 388 unikalių prekių (376 „Rimi“, 12 „Aibės“), 35 automatiniai testai ir naršyklės CSV atsisiuntimas. IKI oficialus akcijų puslapis taip pat buvo pasiekiamas, tačiau jo kainų nuskaitymas dar neprijungtas.
+
+## Kaina prieš mėnesį
+
+Prekės peržiūroje atskirai rodoma kaina tą pačią ankstesnio kalendorinio mėnesio dieną. Trūkstamas mėnesio dienos numeris pakeičiamas paskutine to mėnesio diena. Tiksliam palyginimui būtinas tos pačios prekės, parduotuvės, kanalo ir sąlygų stebėjimas. Kaina neimama iš artimiausios dienos ir nepakeičiama pardavėjo perbraukta kaina.
+
+`data/archive_offers.json` yra atskiras patikrintų oficialių leidinių registras. Pradiniai du įrašai patikrinti oficialaus „Rimi“ leidinio Nr.43 (2026-10-20–26) pirmame puslapyje: sviestas 248955 – 1,19 EUR su kortele, antienos filė 998018 – 2,89 EUR su sąlygomis leidinyje. Fiksuojama tikroji patikros data (`retrieved_at`), leidinio galiojimas ir puslapis. Tai nėra tariami kasdieniai stebėjimai; į `observations.json` ir grafikų kreives jie neįrašomi. Parduotuvės fizinio leidinio kaina ir šiandieninė internetinė kaina nėra vienodų sąlygų palyginimas.
+
+Ankstesnių leidinių registras kol kas pildomas patikrinus šaltinį. Automatinis masinis istorinių leidinių nuskaitymas ir visų prekių mėnesio istorijos atkūrimas dar neįgyvendinti. Patvirtinti šaltiniai rodomi filtre „Ankstesni leidiniai“.
