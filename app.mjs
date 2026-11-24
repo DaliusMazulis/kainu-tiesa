@@ -8,14 +8,14 @@ function badge(text,cls=''){return node('span',text,'badge '+cls);}
 function renderList(){
   const filtered=selectProducts(products,{query:$('search').value,store:$('store-filter').value,mode,sort:$('sort').value});
   $('count').textContent=`Rasta prekių: ${filtered.length}`;
-  $('radar-note').textContent=mode==='radar'?'Parduotuvės skelbiamos akcijos be kortelės. Kol nėra ankstesnių stebėjimų, nuolaida istorija nepatvirtinta.':mode==='drops'?'Tik prekės, kurių naujausia kaina mažesnė už ankstesnių 30 dienų stebėjimų minimumą. Trūkstamos dienos nevertinamos.':'Viešos internetinės kainos be lojalumo kortelės. Kortelės ir asmeniniai pasiūlymai neįtraukti.';
+  $('radar-note').textContent=mode==='radar'?'Parduotuvės skelbiamos akcijos be kortelės. Kol nėra ankstesnių stebėjimų, nuolaida istorija nepatvirtinta.':mode==='drops'?'Tik prekės, kurių naujausia kaina mažesnė už ankstesnių 30 dienų stebėjimų minimumą. Trūkstamos dienos nevertinamos.':'Kainos be lojalumo kortelės: „Rimi“ internetu, „Aibė“ – vieši parduotuvių pasiūlymai. Skirtingų parduotuvių prekės automatiškai nesutapatinamos.';
   const container=$('products');container.replaceChildren();
   for(const p of filtered){
     const b=node('button',undefined,'product');b.type='button';b.setAttribute('aria-pressed',String(p.product_id===selected));
-    const top=node('span',undefined,'topline');top.append(node('span',p.store+' · internetu'),node('span',fmtDate(p.observed_at)));
+    const top=node('span',undefined,'topline');top.append(node('span',p.store+(p.channel==='online'?' · internetu':' · parduotuvių pasiūlymas')),node('span',fmtDate(p.observed_at)));
     const line=node('span',undefined,'price-line'),price=node('span',money(p.price),'price');
     if(p.advertised>0)price.append(node('del',money(p.regular_price)));
-    line.append(price,p.stale?badge('Kaina pasenusi','amber'):p.advertised>0?badge('Skelbiama −'+p.advertised.toFixed(0)+' %'):badge('Stebima kaina','gray'));
+    line.append(price,p.expired?badge('Pasiūlymas pasibaigė','amber'):p.stale?badge('Kaina pasenusi','amber'):p.advertised>0?badge('Skelbiama −'+p.advertised.toFixed(0)+' %'):badge('Stebima kaina','gray'));
     b.append(top,node('strong',p.name),line);
     b.onclick=()=>{selected=p.product_id;renderList();renderDetail();if(matchMedia('(max-width:640px)').matches)$('detail').scrollIntoView({behavior:'smooth',block:'start'});};container.append(b);
   }
@@ -43,6 +43,9 @@ function renderDetail(){
   if(p.advertised>0)box.append(node('p','Parduotuvės nurodyta įprasta kaina: '+money(p.regular_price),'muted'));
   if(p.unit_price)box.append(node('p',p.unit_price,'muted'));
   if(p.stale)box.append(node('p','Ši kaina senesnė nei 48 valandos. Prieš pirkdamas patikrink šaltinį.','notice error'));
+  if(p.valid_to)box.append(node('p',`Pasiūlymas galioja: ${p.valid_from} – ${p.valid_to}.`,'muted'));
+  if(p.expired)box.append(node('p','Pasiūlymo galiojimas pasibaigė. Rodoma istorinė kaina.','notice error'));
+  if(p.identity_method==='exact_name_and_package')box.append(node('p','Prekė sekama pagal tikslų pavadinimą ir pakuotę, EAN kodas nepateiktas. Šaltinyje ieškok šio pavadinimo.','muted'));
   box.append(link(p.source,'Patikrinti kainą parduotuvėje'));
   const periods=node('div',undefined,'periods');periods.setAttribute('role','group');periods.setAttribute('aria-label','Grafiko laikotarpis');
   for(const d of [30,90,365]){const b=node('button',d+' d.');b.setAttribute('aria-pressed',String(period===d));b.onclick=()=>{period=d;renderDetail();};periods.append(b);}
@@ -59,12 +62,12 @@ async function load(){
     const responses=await Promise.all(['data/observations.json','data/status.json'].map(u=>fetch(u,{cache:'no-store'})));
     if(responses.some(r=>!r.ok))throw Error('Duomenų failas nepasiekiamas');
     const [rows,status]=await Promise.all(responses.map(r=>r.json()));if(!Array.isArray(rows)||!Array.isArray(status.sources))throw Error('Netinkamas duomenų formatas');
-    products=groupProducts(rows);$('products-count').textContent=products.length;$('offers-count').textContent=products.filter(p=>p.advertised>0&&!p.stale).length;
+    products=groupProducts(rows);const previousStore=$('store-filter').value;$('store-filter').replaceChildren();const allOption=node('option','Visos palaikomos');allOption.value='';$('store-filter').append(allOption);for(const store of [...new Set(products.map(p=>p.store))].sort()){const option=node('option',store);option.value=store;$('store-filter').append(option);}$('store-filter').value=previousStore; $('products-count').textContent=products.length;$('offers-count').textContent=products.filter(p=>p.advertised>0&&!p.stale&&!p.expired).length;
     $('days-count').textContent=new Set(products.flatMap(p=>p.history.map(r=>day(r.observed_at)))).size;
     $('updated').textContent=new Date(status.updated_at).toLocaleString('lt-LT',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
     $('data-message').className='notice';$('data-message').textContent=products.length?`Bendra istorija prijungta · ${products.length} prekių · ${rows.length} kainų stebėjimų. Istorija kaupiama nuo ${fmtDate(rows.reduce((a,b)=>a.observed_at<b.observed_at?a:b).observed_at)}. Kainos renkamos kasdien.`:'Kainų stebėjimų dar nėra. Šaltinių būsenos pateiktos žemiau.';
     if(Date.now()-Date.parse(status.updated_at)>48*3600000){$('data-message').className='notice error';$('data-message').textContent+=' Rinkimas vėluoja: duomenys senesni nei 48 val.';}
-    $('sources').replaceChildren();for(const s of status.sources){const card=node('div',undefined,'source-card');card.append(node('strong',s.store),badge(s.status==='ok'?'Renkama':s.status==='partial'?'Dalis duomenų':'Neprijungta',s.status==='ok'?'':'amber'));card.append(node('p',s.observations?`${s.observations} stebėjimų per rinkimą`:'Kainos į istoriją nepateko.'));if(s.errors?.length)card.append(node('p',s.errors.join('; ')));$('sources').append(card);}
+    $('sources').replaceChildren();for(const s of status.sources){const card=node('div',undefined,'source-card');card.append(node('strong',s.store),badge(s.status==='ok'?'Renkama':s.status==='partial'?'Dalis duomenų':s.status==='no_data'?'Pasiūlymų nerasta':s.status==='unavailable'?'Nepasiekiama':'Neprijungta',s.status==='ok'?'':'amber'));card.append(node('p',s.observations?`${s.observations} stebėjimų per rinkimą`:'Kainos į istoriją nepateko.'));if(s.errors?.length)card.append(node('p',s.errors.join('; ')));$('sources').append(card);}
     renderList();renderDetail();
   }catch(e){$('data-message').className='notice error';$('data-message').textContent='Bendros istorijos nepavyko atnaujinti. '+(products.length?'Palikti ankstesni šiame lange įkelti duomenys. ':'')+'Bandyk dar kartą. '+e.message;}
   finally{$('refresh').disabled=false;}

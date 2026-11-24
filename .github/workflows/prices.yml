@@ -47,7 +47,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add data/observations.json data/status.json
+          git add data/observations.json data/observations.csv data/status.json
           if ! git diff --cached --quiet; then
             git commit -m 'data: record daily public price observations'
             git push
@@ -77,7 +77,7 @@ jobs:
         run: |
           mkdir -p _site/data
           cp index.html styles.css app.mjs core.mjs icon.svg _site/
-          cp data/observations.json data/status.json _site/data/
+          cp data/observations.json data/observations.csv data/status.json _site/data/
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
         with:

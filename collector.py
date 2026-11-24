@@ -1,5 +1,7 @@
 """Public HTML collector. Standard library only; no login, proxies or retries on blocks."""
 import argparse
+import csv
+import io
 import datetime as dt
 from decimal import Decimal
 from html.parser import HTMLParser
@@ -8,6 +10,8 @@ import json
 from pathlib import Path
 import re
 import time
+import unicodedata
+from zoneinfo import ZoneInfo
 from urllib.parse import urljoin, urlparse
 from urllib.request import Request, urlopen
 from urllib.robotparser import RobotFileParser
@@ -98,6 +102,40 @@ def rimi_extract(html, source, observed_at):
         out.append(dict(product_id='rimi:'+sku, sku=sku, name=' '.join(name.text().split()), store='Rimi', channel='online', conditions='public_without_card', price=price, regular_price=previous, currency='EUR', unit_price=' '.join(unit.find('sr-only').text().split()) if unit and unit.find('sr-only') else None, source=product_url, listing_source=source, observed_at=observed_at, status='observed', evidence_sha256=hashlib.sha256(html.encode()).hexdigest()))
     return out
 
+def aibe_extract(html, source, observed_at):
+    """Only explicitly labelled prices without a card; never use the card unit price."""
+    if source != 'https://aibe.lt/akcijos/': raise ValueError('Unsupported source')
+    p = Parser(); p.feed(html); out = []
+    today = dt.datetime.fromisoformat(observed_at.replace('Z', '+00:00')).astimezone(ZoneInfo('Europe/Vilnius')).date()
+    # Resolve short section dates only against a full, explicitly stated campaign range.
+    ranges = []
+    for match in re.finditer(r'(20\d{2})[.](\d{2})[.](\d{2})\s*[-–]\s*(20\d{2})[.](\d{2})[.](\d{2})', p.root.text()):
+        try:
+            a,b,c,d,e,f = map(int, match.groups())
+            start,end = dt.date(a,b,c),dt.date(d,e,f)
+            if start <= today <= end and (end-start).days <= 45: ranges.append((start,end))
+        except ValueError: continue
+    for section in p.root.all():
+        if 'bestOffers' not in section.attrs.get('class', '').split(): continue
+        section_dates = [n.text() for n in section.all() if 'top-block-date' in n.attrs.get('class', '').split()]
+        matches = [(a,b) for a,b in set(ranges) if section_dates and all(re.search(rf'{re.escape(a.strftime("%m.%d"))}\s*[-–]\s*{re.escape(b.strftime("%m.%d"))}', t) for t in section_dates)]
+        if len(matches) != 1: continue
+        start,end = matches[0]
+        for card in section.all():
+            if 'bestOffers-block' not in card.attrs.get('class', '').split(): continue
+            name = card.find('bestOffers-block-discountProduct-name')
+            label, amount = card.find('discount-without-card-name'), card.find('discount-without-card-price')
+            if not name or not label or not amount or label.text().strip() != 'Be kortelės': continue
+            m = re.fullmatch(r'\s*(\d+[.,]\d{2})\s*€\s*', amount.text())
+            price = price_value(m.group(1)) if m else None
+            full_name = ' '.join(name.text().split())
+            # Variant groups cannot identify a single product and package reliably.
+            if not price or re.search(r'(įv\.|įvairių|[2-9]\s+rūšių)', full_name, re.I): continue
+            identity = unicodedata.normalize('NFKC', full_name).casefold()
+            key = hashlib.sha256(identity.encode()).hexdigest()[:24]
+            out.append(dict(product_id='aibe:'+key, sku=card.attrs.get('data-id'), name=full_name, store='Aibė', channel='in_store_offer', conditions='public_without_card', price=price, regular_price=None, currency='EUR', unit_price=None, source=source, listing_source=source, observed_at=observed_at, valid_from=start.isoformat(), valid_to=end.isoformat(), identity_method='exact_name_and_package', status='observed', evidence_sha256=hashlib.sha256(html.encode()).hexdigest()))
+    return out
+
 class PublicClient:
     def __init__(self): self.robots = {}; self.last = 0
     def read(self, url):
@@ -115,7 +153,7 @@ class PublicClient:
             return data.decode('utf-8')
     def get(self, url):
         parsed = urlparse(url)
-        if parsed.scheme != 'https' or parsed.hostname not in {'www.rimi.lt', 'www.barbora.lt', 'www.varle.lt', 'www.senukai.lt', 'www.lidl.lt'}: raise ValueError('Host not allowed')
+        if parsed.scheme != 'https' or parsed.hostname not in {'www.rimi.lt', 'www.barbora.lt', 'www.varle.lt', 'www.senukai.lt', 'www.lidl.lt', 'aibe.lt'}: raise ValueError('Host not allowed')
         origin = 'https://' + parsed.netloc
         if origin not in self.robots:
             rp = RobotFileParser(); rp.parse(self.read(origin+'/robots.txt').splitlines()); self.robots[origin] = rp
@@ -138,25 +176,42 @@ def merge_observations(existing, incoming):
 def atomic_json(path, data):
     temp = path.with_suffix('.tmp'); temp.write_text(json.dumps(data, ensure_ascii=False, indent=2)+'\n', encoding='utf-8'); temp.replace(path)
 
+def csv_export(rows):
+    stream = io.StringIO(newline='')
+    writer = csv.writer(stream, delimiter=';')
+    writer.writerow(['Prekės ID','Prekė','Parduotuvė','Kanalas','Sąlygos','Kaina EUR','Stebėjimo laikas UTC','Galioja nuo','Galioja iki','Šaltinis'])
+    def safe(value):
+        text = str(value or '')
+        return "'" + text if text.lstrip().startswith(('=', '+', '-', '@')) or text.startswith(('\t', '\r', '\n')) else text
+    for r in rows:
+        writer.writerow([safe(r.get(k)) for k in ['product_id','name','store','channel','conditions']] + [r['price'].replace('.', ','), r['observed_at'], r.get('valid_from', ''), r.get('valid_to', ''), safe(r['source'])])
+    return '\ufeff' + stream.getvalue()
+
+
 def collect():
     client = PublicClient(); stamp = dt.datetime.now(dt.timezone.utc).isoformat(); incoming=[]; sources=[]
     config = json.loads((ROOT/'sources.json').read_text())
     for store in config:
-        count=0; errors=[]; pages=[]
+        count=0; errors=[]; pages=[]; failed=False
         for url in store['urls']:
             try:
                 html = client.get(url)
-                rows = rimi_extract(html, url, stamp) if store['parser']=='rimi' else []
+                parser = {'rimi':rimi_extract, 'aibe':aibe_extract}.get(store['parser'])
+                rows = parser(html, url, stamp) if parser else []
                 incoming.extend(rows); count += len(rows)
                 pages.append({'url':url, 'count':len(rows), 'sha256':hashlib.sha256(html.encode()).hexdigest()})
                 if not rows: errors.append('Šios parduotuvės kainų parseris dar neprijungtas' if store['parser'] is None else 'Viešame HTML palaikomų kainų nerasta')
             except Exception as e:
-                errors.append(str(e)); break  # Do not retry a blocked host.
-        sources.append(dict(store=store['store'], status='ok' if count and not errors else 'partial' if count else 'unavailable', observations=count, errors=errors, pages=pages, checked_at=stamp))
+                failed=True; errors.append(str(e)); break  # Do not retry a blocked host.
+        sources.append(dict(store=store['store'], status='ok' if count and not errors else 'partial' if count else 'unavailable' if failed else 'no_data' if store['parser'] else 'unsupported', observations=count, errors=errors, pages=pages, checked_at=stamp))
     path = ROOT/'data/observations.json'
     existing = json.loads(path.read_text()) if path.exists() else []
     merged = merge_observations(existing, incoming)
     atomic_json(path, merged)
+    csv_path = ROOT/'data/observations.csv'
+    csv_temp = csv_path.with_suffix('.tmp')
+    csv_temp.write_text(csv_export(merged), encoding='utf-8', newline='')
+    csv_temp.replace(csv_path)
     atomic_json(ROOT/'data/status.json', dict(updated_at=stamp, sources=sources, total_observations=len(merged), products=len({r['product_id'] for r in merged}), new_observations=len(merged)-len(existing)))
     print(json.dumps({'products':len({r['product_id'] for r in merged}), 'new':len(merged)-len(existing), 'sources':sources}, ensure_ascii=False, indent=2))
     return bool(incoming)

@@ -54,4 +54,46 @@ class PipelineTests(unittest.TestCase):
         for r in rows:
             self.assertEqual(r['status'],'observed');self.assertEqual(r['currency'],'EUR')
             self.assertTrue(price_value(r['price']));self.assertEqual(len(r['evidence_sha256']),64)
-            self.assertTrue(r['source'].endswith('/p/'+r['sku']))
+            if r['store']=='Rimi': self.assertTrue(r['source'].endswith('/p/'+r['sku']))
+            elif r['store']=='Aibė': self.assertEqual(r['source'],'https://aibe.lt/akcijos/')
+            else: self.fail('Unknown store')
+
+class AibeTests(unittest.TestCase):
+    def setUp(self): self.html=(ROOT/'tests/fixtures/aibe.html').read_text()
+    def rows(self, html=None, stamp=STAMP):
+        from collector import aibe_extract
+        return aibe_extract(html if html is not None else self.html,'https://aibe.lt/akcijos/',stamp)
+    def test_explicit_without_card_prices(self):
+        rows=self.rows();self.assertEqual(len(rows),2)
+        self.assertEqual(rows[0]['price'],'2.09')
+        self.assertEqual(rows[1]['price'],'3.99')
+        self.assertIsNone(rows[0]['regular_price'])
+        self.assertIsNone(rows[0]['unit_price'])
+        self.assertEqual(rows[0]['valid_to'],'2026-11-24')
+    def test_card_only_not_published(self):
+        self.assertEqual(self.rows(self.html.replace('Be kortelės','Su kortele')),[])
+    def test_expired_and_future_offer_rejected(self):
+        self.assertEqual(self.rows(stamp='2026-11-25T12:00:00Z'),[])
+        self.assertEqual(self.rows(stamp='2026-11-10T12:00:00Z'),[])
+    def test_expiry_uses_lithuanian_midnight(self):
+        self.assertEqual(self.rows(stamp='2026-11-24T22:01:00Z'),[])
+    def test_no_year_no_publish(self):
+        self.assertEqual(self.rows(self.html.replace('2026.','')),[])
+    def test_invalid_dates_no_publish(self):
+        self.assertEqual(self.rows(self.html.replace('2026.11.24','2026.99.24')),[])
+    def test_identity_survives_campaign_id_change(self):
+        self.assertEqual(self.rows()[0]['product_id'],self.rows(self.html.replace('77054','99999'))[0]['product_id'])
+    def test_variant_groups_skipped(self):
+        changed=self.html.replace('200 g','įv. rūšių, 200 g')
+        self.assertEqual(len(self.rows(changed)),1)
+    def test_csv_preserves_all_observations_and_utf8(self):
+        from collector import csv_export
+        import csv,io
+        rows=self.rows();text=csv_export(rows)
+        self.assertTrue(text.startswith('\ufeff'))
+        parsed=list(csv.reader(io.StringIO(text.lstrip('\ufeff')),delimiter=';'))
+        self.assertEqual(len(parsed),len(rows)+1);self.assertEqual(parsed[1][1],rows[0]['name']);self.assertEqual(parsed[1][5],'2,09')
+    def test_csv_formula_escaping(self):
+        from collector import csv_export
+        rows=self.rows();rows[0]['name']='=1+1';rows[1]['name']='  @SUM(1)'
+        text=csv_export(rows);self.assertIn("'=1+1",text);self.assertIn("'  @SUM(1)",text)

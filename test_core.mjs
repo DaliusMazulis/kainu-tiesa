@@ -16,3 +16,16 @@ test('accent insensitive multiword and code search',()=>{const p=groupProducts(a
 test('store filter and price sorting',()=>{const p=groupProducts(actual,datasetNow);assert.equal(selectProducts(p,{store:'Unknown'}).length,0);const sorted=selectProducts(p,{sort:'price'});assert.ok(sorted.every((p,i)=>i===0||Number(p.price)>=Number(sorted[i-1].price)));});
 test('stale prices do not enter radar',()=>{const p=groupProducts([{...row(3),regular_price:'99.00'}],now);assert.equal(p[0].stale,true);assert.equal(selectProducts(p,{mode:'radar'}).length,0);});
 test('discount calculator validates and distinguishes real minimum',()=>{assert.deepEqual(checkDiscount(10,8,8),{advertised:19.999999999999996,observed:0,saving:0});assert.equal(checkDiscount('',8,8),null);assert.equal(checkDiscount(0,8,8),null);assert.equal(checkDiscount(10,-1,8),null);assert.equal(checkDiscount('NaN',1,2),null);assert.equal(checkDiscount(10,0,8).saving,8);});
+test('Aibė without-card prices are accepted with a separate store and channel',()=>{
+ const a={...row(0,'2.09'),product_id:'aibe:test',store:'Aibė',channel:'in_store_offer',source:'https://aibe.lt/akcijos/',regular_price:null,valid_from:'2026-11-12',valid_to:'2026-11-24'};
+ const before=groupProducts([a],new Date('2026-11-24T21:59:59Z'))[0];assert.equal(before,undefined); // Observation is still in the future.
+ const active=groupProducts([{...a,observed_at:'2026-11-24T17:00:00Z'}],new Date('2026-11-24T21:59:59Z'))[0];assert.equal(active.expired,false);assert.equal(active.advertised,0);
+ const expired=groupProducts([{...a,observed_at:'2026-11-24T17:00:00Z'}],new Date('2026-11-24T22:00:01Z'))[0];assert.equal(expired.expired,true);
+});
+test('expired offers never enter either radar',()=>{
+ const a={...row(0),expired:true,advertised:20,drop:10,stale:false};assert.equal(selectProducts([a],{mode:'radar'}).length,0);assert.equal(selectProducts([a],{mode:'drops'}).length,0);assert.equal(selectProducts([a]).length,1);
+});
+test('source and store combinations cannot be mixed',()=>{
+ assert.equal(groupProducts([{...row(0),store:'Aibė'}],now).length,0);
+ assert.equal(groupProducts([{...row(0),source:'https://www.rimi.lt.evil.test/e-parduotuve/lt/produktai/'}],now).length,0);
+});

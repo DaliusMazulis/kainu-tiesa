@@ -1,39 +1,78 @@
 {
-  "updated_at": "2026-11-24T17:22:43.855341+00:00",
+  "updated_at": "2026-11-24T17:30:08.176986+00:00",
   "sources": [
     {
       "store": "Rimi",
       "status": "ok",
-      "observations": 197,
+      "observations": 388,
       "errors": [],
       "pages": [
         {
           "url": "https://www.rimi.lt/e-parduotuve/lt/paieska?query=pienas",
           "count": 40,
-          "sha256": "48a146dad46e68fa33c1a48c86ab22b09dc2585187eda876f661142b6dea1088"
+          "sha256": "0ae89a20acab15b5ccd54ae6481160353b8bed27c876e81e1538765b80b7b1f6"
         },
         {
           "url": "https://www.rimi.lt/e-parduotuve/lt/paieska?query=kava",
           "count": 40,
-          "sha256": "d6947cca7176c15444a5348eb4eccbf97ff47d36f0141f2acff125e51529c3a3"
+          "sha256": "f08f55d545c26ee7cdb4ef81048d88a7aa4d1a850d356fb0fe8270cd3f690872"
         },
         {
           "url": "https://www.rimi.lt/e-parduotuve/lt/paieska?query=sviestas",
           "count": 39,
-          "sha256": "d63e861434d7465e3a4f4157d951a39730fb6742d202376b1333084c6d754451"
+          "sha256": "4eba367334a4642688a0d04a98bf6a387cc3f0b2917aa8b9156cff3edfa9a424"
         },
         {
           "url": "https://www.rimi.lt/e-parduotuve/lt/paieska?query=duona",
           "count": 38,
-          "sha256": "f266794d7db77e8ff8a3eba5adc8a6d486dc2d9637592e792ad245593db86777"
+          "sha256": "d6f113c7e68c1b1d811602410b0c2f112c11841ac98d59556702913a06b7c4b1"
         },
         {
           "url": "https://www.rimi.lt/e-parduotuve/lt/paieska?query=kiausiniai",
           "count": 40,
-          "sha256": "660b9055baa7b246dcbabc9a8e0b909570d3fd134b934377969e8215181faab0"
+          "sha256": "713876f9613784fe0d3a0453f37c80f85fbcd4f3a513176e352199576f41527a"
+        },
+        {
+          "url": "https://www.rimi.lt/e-parduotuve/lt/paieska?query=cukrus",
+          "count": 40,
+          "sha256": "cc42479826b67ca6614dc0b3fe23e5ba0c64c14e161a66cf6f45979515d1d215"
+        },
+        {
+          "url": "https://www.rimi.lt/e-parduotuve/lt/paieska?query=suris",
+          "count": 40,
+          "sha256": "b7d34d62330997a4b943a91c6238574c49d2cd32065ade8ecf722585389fea65"
+        },
+        {
+          "url": "https://www.rimi.lt/e-parduotuve/lt/paieska?query=arbata",
+          "count": 40,
+          "sha256": "a8948a359a698dc49ba01bb9f0061601744f265ae71740183641933d47c7d70b"
+        },
+        {
+          "url": "https://www.rimi.lt/e-parduotuve/lt/paieska?query=mesa",
+          "count": 31,
+          "sha256": "7517cd5e9d9db531916fd8ce54ea970705379a1d32a2fe6039b943060d466def"
+        },
+        {
+          "url": "https://www.rimi.lt/e-parduotuve/lt/paieska?query=aliejus",
+          "count": 40,
+          "sha256": "09f81ae9e4de621003a28598eb50283be2946b6776e28afdeaf141a8941a63d8"
         }
       ],
-      "checked_at": "2026-11-24T17:22:43.855341+00:00"
+      "checked_at": "2026-11-24T17:30:08.176986+00:00"
+    },
+    {
+      "store": "Aibė",
+      "status": "ok",
+      "observations": 12,
+      "errors": [],
+      "pages": [
+        {
+          "url": "https://aibe.lt/akcijos/",
+          "count": 12,
+          "sha256": "faf0b6d65f64bcad47addabd6d4c2895c8b0c2f9c6717151d411bc2cad62265c"
+        }
+      ],
+      "checked_at": "2026-11-24T17:30:08.176986+00:00"
     },
     {
       "store": "Barbora",
@@ -43,27 +82,39 @@
         "HTTP Error 301: Moved Permanently"
       ],
       "pages": [],
-      "checked_at": "2026-11-24T17:22:43.855341+00:00"
+      "checked_at": "2026-11-24T17:30:08.176986+00:00"
     },
     {
       "store": "Varle",
       "status": "unavailable",
       "observations": 0,
       "errors": [
-        "HTTP Error 403: Forbidden"
+        "Šios parduotuvės kainų parseris dar neprijungtas"
       ],
-      "pages": [],
-      "checked_at": "2026-11-24T17:22:43.855341+00:00"
+      "pages": [
+        {
+          "url": "https://www.varle.lt/",
+          "count": 0,
+          "sha256": "85904ab3fb51022564e08f2444417d5f9ea2d17b6f44f68368224c9c9a4a77f9"
+        }
+      ],
+      "checked_at": "2026-11-24T17:30:08.176986+00:00"
     },
     {
       "store": "Senukai",
       "status": "unavailable",
       "observations": 0,
       "errors": [
-        "HTTP Error 403: Forbidden"
+        "Šios parduotuvės kainų parseris dar neprijungtas"
       ],
-      "pages": [],
-      "checked_at": "2026-11-24T17:22:43.855341+00:00"
+      "pages": [
+        {
+          "url": "https://www.senukai.lt/",
+          "count": 0,
+          "sha256": "b4185d73096769d013ac599ac9db787386e48f99ca93363ecad99aff62d57f48"
+        }
+      ],
+      "checked_at": "2026-11-24T17:30:08.176986+00:00"
     },
     {
       "store": "Lidl",
@@ -76,13 +127,13 @@
         {
           "url": "https://www.lidl.lt/",
           "count": 0,
-          "sha256": "382e234de1df74a310d7acd19f1020a73a62118cf044ad50b1020e0bb030523d"
+          "sha256": "4c749f3101b60cb46ba0873702306f90864619adc31dd3b735a4e4ae7b0abfdb"
         }
       ],
-      "checked_at": "2026-11-24T17:22:43.855341+00:00"
+      "checked_at": "2026-11-24T17:30:08.176986+00:00"
     }
   ],
-  "total_observations": 189,
-  "products": 189,
-  "new_observations": 0
+  "total_observations": 388,
+  "products": 388,
+  "new_observations": 199
 }
