@@ -136,6 +136,62 @@ def aibe_extract(html, source, observed_at):
             out.append(dict(product_id='aibe:'+key, sku=card.attrs.get('data-id'), name=full_name, store='Aibė', channel='in_store_offer', conditions='public_without_card', price=price, regular_price=None, currency='EUR', unit_price=None, source=source, listing_source=source, observed_at=observed_at, valid_from=start.isoformat(), valid_to=end.isoformat(), identity_method='exact_name_and_package', status='observed', evidence_sha256=hashlib.sha256(html.encode()).hexdigest()))
     return out
 
+def catalog_extract(html, source, observed_at):
+    """Public SSR prices only, cross-checked against a second card field."""
+    host=urlparse(source).hostname
+    stores={'www.jysk.lt':('JYSK','jysk','online'), 'www.drogas.lt':('Drogas','drogas','online'), 'pepco.lt':('Pepco','pepco','in_store_catalog')}
+    if host not in stores: raise ValueError('Unsupported source')
+    store,prefix,channel=stores[host];p=Parser();p.feed(html);out=[];seen=set()
+    def amount(text):
+        return price_value(re.sub(r'[\s€]', '', text))
+    for card in p.root.all():
+        regular=None;category='Buities prekės'
+        if prefix=='jysk':
+            if 'product-item' not in card.attrs.get('class','').split(): continue
+            try: meta=json.loads(card.attrs['data-ga4-item'])
+            except (KeyError,ValueError): continue
+            sku=card.attrs.get('data-ga4-product-id','')
+            final=card.find('final-price');visible=final.find('price-wo-currency') if final else None
+            price=amount(visible.text()) if visible else None
+            name=re.sub(r'\\u([0-9a-fA-F]{4})',lambda m:chr(int(m[1],16)),str(meta.get('item_name','')))
+            links=[n for n in card.all() if n.tag=='a' and n.attrs.get('href','').endswith('.html')]
+            if not links or str(meta.get('item_id'))!=sku or price_value(meta.get('price'))!=price: continue
+            url=urljoin(source,links[0].attrs['href'])
+            if not final or not any(n.tag=='meta' and n.attrs.get('itemprop')=='priceCurrency' and n.attrs.get('content')=='EUR' for n in final.all()): continue
+            old=card.find('old-price');v=old.find('price-wo-currency') if old else None
+            regular=amount(v.text()) if v else None
+        elif prefix=='drogas':
+            if card.tag!='e2-product-tile': continue
+            name_node=card.find('product-list-item__name');v=card.find('price__default-value');a=card.find('product-list-item__link')
+            if not name_node or not v or not a or v.attrs.get('aria-hidden')!='false': continue
+            price=amount(v.text())
+            if amount(v.attrs.get('aria-label',''))!=price: continue
+            url=urljoin(source,a.attrs.get('href',''));m=re.search(r'/p/(BP_\d+)$',url)
+            if not m: continue
+            sku=m[1];name=name_node.text();category='Kosmetika ir higiena'
+        else:
+            if card.tag!='a' or '/products/' not in card.attrs.get('href',''): continue
+            h=next((n for n in card.all() if n.tag=='h3'),None)
+            v=next((n for n in card.all() if n.attrs.get('aria-label','').startswith('Product price: ')),None)
+            m=re.search(r'(?:, | - )(\d+(?:[.,]\d+)?)(?:-€| €)',card.attrs.get('aria-label',''))
+            if not h or not v or not m: continue
+            price=amount(v.attrs['aria-label'].removeprefix('Product price: '))
+            if price_value(m[1])!=price: continue
+            # Check displayed digits as well as accessible labels.
+            whole=card.find('price-small');parts=[n.text() for n in card.all() if 'price-small-subscript' in n.attrs.get('class','').split() and re.fullmatch(r'[.,]?\d{2}',n.text())]
+            if not whole or price_value(whole.text()+('.'+parts[0].lstrip('.,') if parts else ''))!=price: continue
+            url=urljoin(source,card.attrs['href']);match=re.search(r'-(\d+)$',url)
+            if not match: continue
+            sku=match[1];name=h.text();subtitle=next((n.text() for n in card.all() if n.tag=='p' and 'body-xsmall' in n.attrs.get('class','').split()), '')
+            if subtitle: name+=' · '+subtitle
+            if re.search(r'šun|šuns|kat[ėe]|augintin|gyvūn',name,re.I): category='Gyvūnams'
+            elif re.search(r'vyrišk|moterišk',name,re.I): category='Apranga'
+            elif re.search(r'žaisl(?!iuk)|pliušinis imbierinis|lėl|lego|vaik|berniuk|mergai|žaid|kūdiki|putplasčio šov',name,re.I): category='Vaikams'
+        if not sku or not name or not price or urlparse(url).hostname!=host or sku in seen: continue
+        seen.add(sku)
+        out.append(dict(product_id=prefix+':'+sku,sku=sku,name=' '.join(name.split()),store=store,category=category,channel=channel,conditions='public_without_card',price=price,regular_price=regular,currency='EUR',source=url,listing_source=source,observed_at=observed_at,status='observed',evidence_sha256=hashlib.sha256(html.encode()).hexdigest()))
+    return out
+
 class PublicClient:
     def __init__(self): self.robots = {}; self.last = 0
     def read(self, url):
@@ -153,7 +209,7 @@ class PublicClient:
             return data.decode('utf-8')
     def get(self, url):
         parsed = urlparse(url)
-        if parsed.scheme != 'https' or parsed.hostname not in {'www.rimi.lt', 'www.barbora.lt', 'www.varle.lt', 'www.senukai.lt', 'www.lidl.lt', 'aibe.lt', 'leidiniai.rimi.lt'}: raise ValueError('Host not allowed')
+        if parsed.scheme != 'https' or parsed.hostname not in {'www.rimi.lt', 'www.barbora.lt', 'www.varle.lt', 'www.senukai.lt', 'www.lidl.lt', 'aibe.lt', 'leidiniai.rimi.lt', 'www.jysk.lt', 'www.drogas.lt', 'pepco.lt'}: raise ValueError('Host not allowed')
         origin = 'https://' + parsed.netloc
         if origin not in self.robots:
             rp = RobotFileParser(); rp.parse(self.read(origin+'/robots.txt').lstrip('\ufeff').splitlines()); self.robots[origin] = rp
@@ -178,7 +234,7 @@ def atomic_json(path, data):
 
 def csv_export(rows):
     stream = io.StringIO(newline='')
-    writer = csv.writer(stream, delimiter=';')
+    writer = csv.writer(stream, delimiter=';', lineterminator='\n')
     writer.writerow(['Prekės ID','Prekė','Parduotuvė','Kanalas','Sąlygos','Kaina EUR','Stebėjimo laikas UTC','Galioja nuo','Galioja iki','Šaltinis'])
     def safe(value):
         text = str(value or '')
@@ -188,10 +244,23 @@ def csv_export(rows):
     return '\ufeff' + stream.getvalue()
 
 
+def leaflet_text(html, record):
+    # iPaper exposes all page text as JSON in its public HTML. Read JSON, never execute scripts.
+    match=re.search(r'window\.staticSettings\s*=\s*',html)
+    if match:
+        try:
+            settings,_=json.JSONDecoder().raw_decode(html[match.end():])
+            pages=settings.get('pageTexts',[]);page=int(record.get('page',1))
+            if 1<=page<=len(pages) and isinstance(pages[page-1],str):
+                return ' '.join(pages[page-1].split())
+        except (ValueError,TypeError,AttributeError): pass
+    p=Parser();p.feed(html)
+    return ' '.join(' '.join(n.text().split()) for n in p.root.all() if n.tag=='p')
+
 def check_published_offer(html, record):
     """Re-check an already reviewed offer; never infer a new price or card condition."""
     p=Parser(); p.feed(html)
-    text=' '.join(' '.join(n.text().split()) for n in p.root.all() if n.tag=='p')
+    text=leaflet_text(html,record)
     titles=' '.join(n.text() for n in p.root.all() if n.tag in {'title','h1'})
     required=record.get('required_title_tokens', [])
     context=record.get('price_context', '')
@@ -200,7 +269,7 @@ def check_published_offer(html, record):
 def published_offer_state(html,record):
     if check_published_offer(html,record): return 'verified'
     p=Parser();p.feed(html)
-    visible=' '.join(n.text() for n in p.root.all() if n.tag=='p')
+    visible=leaflet_text(html,record)
     # Some leaflet responses contain only the first page's text for another page URL.
     # Missing page text is not evidence that the reviewed price has changed.
     return 'changed_requires_review' if record['sku'] in visible and record['name'] in visible else 'unavailable'
@@ -238,7 +307,7 @@ def collect():
         for url in store['urls']:
             try:
                 html = client.get(url)
-                parser = {'rimi':rimi_extract, 'aibe':aibe_extract}.get(store['parser'])
+                parser = {'rimi':rimi_extract, 'aibe':aibe_extract, 'catalog':catalog_extract}.get(store['parser'])
                 rows = parser(html, url, stamp) if parser else []
                 incoming.extend(rows); count += len(rows)
                 pages.append({'url':url, 'count':len(rows), 'sha256':hashlib.sha256(html.encode()).hexdigest()})

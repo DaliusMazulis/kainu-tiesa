@@ -56,6 +56,13 @@ class PipelineTests(unittest.TestCase):
             self.assertTrue(price_value(r['price']));self.assertEqual(len(r['evidence_sha256']),64)
             if r['store']=='Rimi': self.assertTrue(r['source'].endswith('/p/'+r['sku']))
             elif r['store']=='Aibė': self.assertEqual(r['source'],'https://aibe.lt/akcijos/')
+            elif r['store'] in {'JYSK','Drogas','Pepco'}:
+                from urllib.parse import urlparse
+                host={'JYSK':'www.jysk.lt','Drogas':'www.drogas.lt','Pepco':'pepco.lt'}[r['store']]
+                self.assertEqual(urlparse(r['source']).hostname,host)
+                self.assertEqual(r['conditions'],'public_without_card')
+                self.assertIn(r['channel'],{'online','in_store_catalog'})
+                self.assertTrue(r['category'])
             else: self.fail('Unknown store')
 
 class AibeTests(unittest.TestCase):

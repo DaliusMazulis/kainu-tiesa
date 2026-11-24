@@ -66,8 +66,18 @@ Ankstesnių leidinių registras kol kas pildomas patikrinus šaltinį. Automatin
 
 2026-11-24 pridėta pirmoji palyginama pora: ROKIŠKIO sviestas, 82 %, 200 g, SKU 248955. 2026-10-24 galiojęs Nr.43 leidinys skelbė 1,19 EUR, 2026-11-24 galiojantis Nr.48 (4 psl.) skelbia 1,29 EUR. Abi kainos su „Mano Rimi“ kortele, perkant vieną 200 g pakuotę, „Hyper“ ir „Super“ parduotuvėse, išskyrus „Express“. Sąlygų legendos patikrintos Nr.43 42 psl. ir Nr.48 40 psl. Skirtumas +0,10 EUR (+8,4 %). Tai leidiniuose paskelbtų pasiūlymų palyginimas, ne visų kasos operacijų ar internetinių kainų istorija.
 
-Palyginimai rodomi puslapio viršuje ir pagal numatytąjį katalogo filtrą. Pasibaigus dabartinio leidinio galiojimui, pora neberodoma kaip dabartinė. Skirtingos kortelės, pakuotės, kanalo, kiekio ar parduotuvių sąlygos atmetamos. Konfliktuojančioms kainoms reikalinga peržiūra.
+Palyginimai rodomi puslapio viršuje ir filtre „Mėnesio palyginimai“. Pagal numatytąją atranką rodomos visos prekės. Pasibaigus dabartinio leidinio galiojimui, pora neberodoma kaip dabartinė. Skirtingos kortelės, pakuotės, kanalo, kiekio ar parduotuvių sąlygos atmetamos. Konfliktuojančioms kainoms reikalinga peržiūra.
 
 Kasdienis rinkimas pakartotinai tikrina patvirtintų įrašų pavadinimą, SKU, leidinio datą ir konkrečią kainos teksto aplinką. Jis neatspėja naujų kainų. Kai iPaper HTML vietoje reikiamo puslapio pateikia tik pirmo puslapio tekstą, tai žymima nepasiekiamu pakartotiniu patikrinimu, o ne tariamu kainos pasikeitimu. Anksčiau vizualiai patikrintas leidinio pasiūlymas išsaugomas iki deklaruoto galiojimo pabaigos, su būsenos informacija. Įrodytiems kainos neatitikimams pora pašalinama iš palyginimų iki peržiūros.
 
 Patikrinta: 28 Python ir 21 JavaScript testas. Kol kas turime vieną patikrintą palyginamą porą; masinis visų prekių istorinių kainų atkūrimas dar neįgyvendintas.
+
+## Buities, kosmetikos ir vaikų prekės
+
+Prijungti trys papildomi viešo HTML šaltiniai: JYSK pradžios puslapio prekių kortelės (baldai, patalynė ir buitis), Drogas kortelės (kosmetika ir higiena), Pepco kortelės (buities prekės, žaislai ir vaikų apranga). Tai puslapiuose pateikta imtis, ne visas tinklų katalogas. Kategoriją galima pasirinkti katalogo filtre. Prekės tarp tinklų nesutapatinamos.
+
+JYSK matoma galutinė kaina sutikrinama su kortelės prekės kodu ir GA4 kaina; dinaminė „30 dienų žemiausia kaina“ nenaudojama kaip mėnesio istorija. Drogas renkama tik matoma kaina be kortelės (`price__default-value`, ne paslėpta), sutikrinama su prieinamumo kainos žyma. Lojalumo kaina nenaudojama nei kaip dabartinė vieša, nei kaip ankstesnė kaina. Pepco katalogo kainai turi sutapti matomi skaitmenys ir abi prieinamumo žymos. Pepco kanalas atskiras: fizinių parduotuvių katalogas, ne internetinė prekyba. Prekių likučiai netvirtinami.
+
+Naujų tinklų internetinių/katalogo kainų istorija prasideda nuo pirmo tikro nuskaitymo. Ankstesnio mėnesio kainos nėra sukuriamos iš perbrauktų kainų. Patikrintas leidinio sviesto palyginimas lieka atskirai. Eurokos, BabyCity ir buitinės technikos tinklų patikimų kainų adapteriai dar neprijungti.
+
+Patikra: 40 Python ir 22 JavaScript testai, įskaitant tikrų trijų naujų tinklų kortelių išrašus, nesutampančių kainų atmetimą, lojalumo ir viešos kainos atskyrimą bei kategorijų filtrą.

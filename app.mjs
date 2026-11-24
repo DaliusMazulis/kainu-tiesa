@@ -1,16 +1,16 @@
-import {DAY,dateMs,day,money,groupProducts,selectProducts,windowHistory,checkDiscount,monthComparison,publishedMonthComparisons} from './core.mjs?v=20261124-compare1';
+import {DAY,dateMs,day,money,groupProducts,selectProducts,windowHistory,checkDiscount,monthComparison,publishedMonthComparisons,categoryOf} from './core.mjs?v=20261124-categories1';
 const $=id=>document.getElementById(id);
 const node=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e};
 const fmtDate=stamp=>new Date(stamp).toLocaleDateString('lt-LT');
 const params=new URLSearchParams(location.search);
-let products=[],comparisons=[],selected=params.get('product')?'rimi:'+params.get('product'):null,mode=params.get('view')||'compared',period=30;
+let products=[],comparisons=[],selected=params.get('product')?(params.get('product').includes(':')?params.get('product'):'rimi:'+params.get('product')):null,mode=params.get('view')||'all',period=30;
 if(!['compared','all','radar','drops','archives'].includes(mode))mode='compared';
 function link(url,label){const a=node('a',label);try{const u=new URL(url);if(u.protocol==='https:'){a.href=u.href;a.target='_blank';a.rel='noopener noreferrer';}}catch{}return a;}
 function badge(text,cls=''){return node('span',text,'badge '+cls);}
 function renderList(){
-  const filtered=selectProducts(products,{query:$('search').value,store:$('store-filter').value,mode,sort:$('sort').value});
+  const filtered=selectProducts(products,{query:$('search').value,store:$('store-filter').value,category:$('category-filter').value,mode,sort:$('sort').value});
   $('count').textContent=`Rasta prekių: ${filtered.length}`;
-  $('radar-note').textContent=mode==='compared'?'Tik palyginimai su vienoda preke, pakuote, parduotuve, kortelės ir kiekio sąlygomis. Šaltinis – oficialūs parduotuvių leidiniai.':mode==='archives'?'Prekės, kurioms yra oficialaus leidinio kainų, galiojusių prieš mėnesį. Leidinio ir internetinės kainos sąlygos gali skirtis.':mode==='radar'?'Parduotuvės skelbiamos akcijos be kortelės. Kol nėra ankstesnių stebėjimų, nuolaida istorija nepatvirtinta.':mode==='drops'?'Tik prekės, kurių naujausia kaina mažesnė už ankstesnių 30 dienų stebėjimų minimumą. Trūkstamos dienos nevertinamos.':'Kainos be lojalumo kortelės: „Rimi“ internetu, „Aibė“ – vieši parduotuvių pasiūlymai. Skirtingų parduotuvių prekės automatiškai nesutapatinamos.';
+  $('radar-note').textContent=mode==='compared'?'Tik palyginimai su vienoda preke, pakuote, parduotuve, kortelės ir kiekio sąlygomis. Šaltinis – oficialūs parduotuvių leidiniai.':mode==='archives'?'Prekės, kurioms yra oficialaus leidinio kainų, galiojusių prieš mėnesį. Leidinio ir internetinės kainos sąlygos gali skirtis.':mode==='radar'?'Parduotuvės skelbiamos akcijos be kortelės. Kol nėra ankstesnių stebėjimų, nuolaida istorija nepatvirtinta.':mode==='drops'?'Tik prekės, kurių naujausia kaina mažesnė už ankstesnių 30 dienų stebėjimų minimumą. Trūkstamos dienos nevertinamos.':'Viešos kainos be kortelės. „Rimi“, „JYSK“ ir „Drogas“ – internetu; „Aibė“ – pasiūlymai; „Pepco“ – fizinių parduotuvių katalogas. Tai atrinktos prekės, ne visas parduotuvių asortimentas.';
   const container=$('products');container.replaceChildren();
   for(const p of filtered){
     const b=node('button',undefined,'product');b.type='button';b.setAttribute('aria-pressed',String(p.product_id===selected));
@@ -72,6 +72,8 @@ function renderDetail(){
   if(p.valid_to)box.append(node('p',`Pasiūlymas galioja: ${p.valid_from} – ${p.valid_to}.`,'muted'));
   if(p.expired)box.append(node('p','Pasiūlymo galiojimas pasibaigė. Rodoma istorinė kaina.','notice error'));
   if(p.identity_method==='exact_name_and_package')box.append(node('p','Prekė sekama pagal tikslų pavadinimą ir pakuotę, EAN kodas nepateiktas. Šaltinyje ieškok šio pavadinimo.','muted'));
+  if(p.store==='Drogas')box.append(node('p','Rodoma vieša kaina be kortelės. Pigiau su lojalumo kortele siūloma kaina į šią istoriją neįtraukiama.','notice'));
+  if(p.channel==='in_store_catalog')box.append(node('p','Vieša katalogo kaina fizinėse parduotuvėse. Prekės prieinamumą ir kainą pasirinktoje parduotuvėje patikrink pas pardavėją.','notice'));
   box.append(link(p.source,'Patikrinti kainą parduotuvėje'));
   const month=p.month;
   const monthBox=node('section',undefined,'month-comparison');
@@ -109,7 +111,8 @@ async function load(){
   }catch(e){$('data-message').className='notice error';$('data-message').textContent='Bendros istorijos nepavyko atnaujinti. '+(products.length?'Palikti ankstesni šiame lange įkelti duomenys. ':'')+'Bandyk dar kartą. '+e.message;}
   finally{$('refresh').disabled=false;}
 }
-for(const id of ['search','store-filter','sort'])$(id).addEventListener(id==='search'?'input':'change',renderList);
+if(params.get('category'))$('category-filter').value=params.get('category');
+for(const id of ['search','store-filter','category-filter','sort'])$(id).addEventListener(id==='search'?'input':'change',()=>{if($('category-filter').value&&mode==='compared'){mode='all';for(const b of document.querySelectorAll('[data-mode]'))b.setAttribute('aria-pressed',String(b.dataset.mode===mode));}renderList();});
 for(const b of document.querySelectorAll('[data-mode]'))b.onclick=()=>{mode=b.dataset.mode;for(const other of document.querySelectorAll('[data-mode]'))other.setAttribute('aria-pressed',String(other===b));renderList();renderDetail();};
 $('refresh').onclick=load;
 $('check-form').onsubmit=e=>{e.preventDefault();const r=checkDiscount($('old').value,$('current').value,$('minimum').value);$('result').textContent=r?`Skelbiama nuolaida: ${r.advertised.toFixed(1)} %. Pokytis pagal įvestą istoriją: ${r.observed.toFixed(1)} %. `+(r.saving>0?'Sutaupymas: '+money(r.saving):'Kaina nėra mažesnė už žinomą minimumą.'):'Įvesk tinkamas kainas.';};

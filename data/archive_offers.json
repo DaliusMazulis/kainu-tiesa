@@ -28,9 +28,9 @@
       "2026.10.26"
     ],
     "price_context": "1,19 2,79 ROKIŠKIO sviestas, 82 % rieb., 200 g",
-    "last_checked_at": "2026-11-24T18:08:54.488826+00:00",
-    "last_verified_at": "2026-11-24T18:08:54.488826+00:00",
-    "evidence_sha256": "8038e0cf9edbdde57a966f371febdf593027eae8eb1d336d9a8c91125d342ee1"
+    "last_checked_at": "2026-11-24T18:32:07.484277+00:00",
+    "last_verified_at": "2026-11-24T18:32:07.484277+00:00",
+    "evidence_sha256": "db0135008c06783225b37d3aaa96d89b80358805d3f4f6136e02d09a31fcde9e"
   },
   {
     "store": "Rimi",
@@ -56,10 +56,10 @@
       "2026.10.26"
     ],
     "price_context": "2,89 4,99 Antienos filė su prieskoniais KITCHEN ME, 170 g",
-    "last_checked_at": "2026-11-24T18:08:54.488826+00:00",
+    "last_checked_at": "2026-11-24T18:32:07.484277+00:00",
     "source_check": "verified",
-    "last_verified_at": "2026-11-24T18:08:54.488826+00:00",
-    "evidence_sha256": "8038e0cf9edbdde57a966f371febdf593027eae8eb1d336d9a8c91125d342ee1"
+    "last_verified_at": "2026-11-24T18:32:07.484277+00:00",
+    "evidence_sha256": "db0135008c06783225b37d3aaa96d89b80358805d3f4f6136e02d09a31fcde9e"
   },
   {
     "store": "Rimi",
@@ -90,8 +90,8 @@
       "2026.11.30"
     ],
     "price_context": "ROKIŠKIO sviestas, 82 % rieb., 200 g (6,45 € / kg) 1,29 2,79",
-    "evidence_sha256": "e4a333655b40a51b754e21170a21a6815ecac0dd6b3d83c6765af79f1449fad2",
-    "last_checked_at": "2026-11-24T18:08:54.488826+00:00",
-    "last_verified_at": "2026-11-24T18:08:54.488826+00:00"
+    "evidence_sha256": "672b438d072c5817bb98acef318476a1852b4b4cfe91f92bfabc8d662fc89f70",
+    "last_checked_at": "2026-11-24T18:32:07.484277+00:00",
+    "last_verified_at": "2026-11-24T18:32:07.484277+00:00"
   }
 ]

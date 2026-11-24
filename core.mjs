@@ -6,7 +6,7 @@ export const ltDay = date => date.toLocaleDateString('sv-SE',{timeZone:'Europe/V
 export const normalize = text => String(text).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const isoDay = value => typeof value==='string' && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(Date.parse(value+'T00:00:00Z')) && new Date(value+'T00:00:00Z').toISOString().slice(0,10)===value;
 export function validRow(r) {
-  const sourceOK = r && ((r.store==='Rimi' && /^rimi:/.test(r.product_id) && /^https:\/\/www\.rimi\.lt\/e-parduotuve\/lt\/produktai\//.test(r.source) && r.channel==='online') || (r.store==='Aibė' && /^aibe:/.test(r.product_id) && r.source==='https://aibe.lt/akcijos/' && r.channel==='in_store_offer' && isoDay(r.valid_from) && isoDay(r.valid_to) && r.valid_from<=r.valid_to));
+  const sourceOK = r && ((r.store==='Rimi' && /^rimi:/.test(r.product_id) && /^https:\/\/www\.rimi\.lt\/e-parduotuve\/lt\/produktai\//.test(r.source) && r.channel==='online') || (r.store==='JYSK' && /^jysk:\d+$/.test(r.product_id) && /^https:\/\/www\.jysk\.lt\/[^?#]+\.html$/.test(r.source) && r.channel==='online') || (r.store==='Drogas' && /^drogas:BP_\d+$/.test(r.product_id) && /^https:\/\/www\.drogas\.lt\/[^?#]+\/p\/BP_\d+$/.test(r.source) && r.channel==='online') || (r.store==='Pepco' && /^pepco:\d+$/.test(r.product_id) && /^https:\/\/pepco\.lt\/products\/[^?#]+-\d+$/.test(r.source) && r.channel==='in_store_catalog') || (r.store==='Aibė' && /^aibe:/.test(r.product_id) && r.source==='https://aibe.lt/akcijos/' && r.channel==='in_store_offer' && isoDay(r.valid_from) && isoDay(r.valid_to) && r.valid_from<=r.valid_to));
   return r && typeof r.product_id==='string' && typeof r.name==='string' && typeof r.store==='string' && r.currency==='EUR' && r.status==='observed' && r.conditions==='public_without_card' && Number.isFinite(Number(r.price)) && Number(r.price)>0 && Number.isFinite(Date.parse(r.observed_at)) && sourceOK;
 }
 export function groupProducts(rows, now = new Date()) {
@@ -26,9 +26,10 @@ export function groupProducts(rows, now = new Date()) {
     return {...latest,history,minimum,priorDays:days,advertised,drop:minimum===null?null:(1-Number(latest.price)/minimum)*100,expired,stale:+now-Date.parse(latest.observed_at)>48*3600000};
   });
 }
-export function selectProducts(products,{query='',store='',mode='all',sort='name'}={}) {
+export const categoryOf = p => p.category || (/dantų past|šampūn|dezodor|kosmetik/i.test(p.name)?'Kosmetika ir higiena':/popieriniai rankšluos|tualetinis popier|plovikl|skalbikl/i.test(p.name)?'Buities prekės':'Maistas');
+export function selectProducts(products,{query='',store='',category='',mode='all',sort='name'}={}) {
   const terms=normalize(query).split(/\s+/).filter(Boolean);
-  const out=products.filter(p=>terms.every(t=>normalize(p.name+' '+p.store+' '+p.sku).includes(t)) && (!store||p.store===store) && (mode==='all'||mode==='radar'&&p.advertised>0&&!p.stale&&!p.expired||mode==='drops'&&p.drop>0&&!p.stale&&!p.expired||mode==='archives'&&p.monthArchives?.length>0||mode==='compared'&&Boolean(p.leafletComparison)));
+  const out=products.filter(p=>terms.every(t=>normalize(p.name+' '+p.store+' '+p.sku).includes(t)) && (!store||p.store===store) && (!category||categoryOf(p)===category) && (mode==='all'||mode==='radar'&&p.advertised>0&&!p.stale&&!p.expired||mode==='drops'&&p.drop>0&&!p.stale&&!p.expired||mode==='archives'&&p.monthArchives?.length>0||mode==='compared'&&Boolean(p.leafletComparison)));
   return out.sort((a,b)=>sort==='price'?Number(a.price)-Number(b.price):sort==='discount'?b.advertised-a.advertised:a.name.localeCompare(b.name,'lt'));
 }
 export function windowHistory(history, days, now = new Date()) {

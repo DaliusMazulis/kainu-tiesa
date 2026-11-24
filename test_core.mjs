@@ -60,3 +60,10 @@ test('network failure preserves a previously reviewed published offer',async()=>
 test('comparison filter never includes products that only have an old leaflet',()=>{
  const good={...base,leafletComparison:{current:{price:'1.29'}}},missing={...base,product_id:'rimi:missing',monthArchives:[{}]};assert.equal(selectProducts([good,missing],{mode:'compared'}).length,1);
 });
+test('new retailer rows keep source hosts and categories separate',()=>{
+ const samples=[['JYSK','jysk:848805','https://www.jysk.lt/pagalves-uzvalkalas-jessika-135067-lt.html','online','Buities prekės'],['Drogas','drogas:BP_344832','https://www.drogas.lt/kosmetika/akims/p/BP_344832','online','Kosmetika ir higiena'],['Pepco','pepco:646201','https://pepco.lt/products/lego-646201','in_store_catalog','Vaikams']];
+ const rows=samples.map(([store,product_id,source,channel,category])=>({...row(0),store,product_id,source,channel,category}));
+ const products=groupProducts(rows,now);assert.equal(products.length,3);
+ for(const r of rows){assert.equal(selectProducts(products,{category:r.category}).length,1);assert.equal(groupProducts([{...r,source:base.source}],now).length,0);}
+ assert.equal(selectProducts(products,{category:'Maistas'}).length,0);
+});

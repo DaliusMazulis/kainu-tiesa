@@ -23,6 +23,27 @@
     ]
   },
   {
+    "store": "JYSK",
+    "parser": "catalog",
+    "urls": [
+      "https://www.jysk.lt/"
+    ]
+  },
+  {
+    "store": "Drogas",
+    "parser": "catalog",
+    "urls": [
+      "https://www.drogas.lt/"
+    ]
+  },
+  {
+    "store": "Pepco",
+    "parser": "catalog",
+    "urls": [
+      "https://pepco.lt/"
+    ]
+  },
+  {
     "store": "Barbora",
     "parser": null,
     "urls": [
