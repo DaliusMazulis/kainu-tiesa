@@ -1,4 +1,4 @@
-import {DAY,dateMs,day,money,groupProducts,selectProducts,windowHistory,checkDiscount,monthComparison} from './core.mjs';
+import {DAY,dateMs,day,money,groupProducts,selectProducts,windowHistory,checkDiscount,monthComparison} from './core.mjs?v=20261124-month1';
 const $=id=>document.getElementById(id);
 const node=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e};
 const fmtDate=stamp=>new Date(stamp).toLocaleDateString('lt-LT');
