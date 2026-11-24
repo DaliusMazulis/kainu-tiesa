@@ -1,0 +1,7 @@
+[
+  {"store":"Rimi","parser":"rimi","urls":["https://www.rimi.lt/e-parduotuve/lt/paieska?query=pienas","https://www.rimi.lt/e-parduotuve/lt/paieska?query=kava","https://www.rimi.lt/e-parduotuve/lt/paieska?query=sviestas","https://www.rimi.lt/e-parduotuve/lt/paieska?query=duona","https://www.rimi.lt/e-parduotuve/lt/paieska?query=kiausiniai"]},
+  {"store":"Barbora","parser":null,"urls":["https://www.barbora.lt/"]},
+  {"store":"Varle","parser":null,"urls":["https://www.varle.lt/"]},
+  {"store":"Senukai","parser":null,"urls":["https://www.senukai.lt/"]},
+  {"store":"Lidl","parser":null,"urls":["https://www.lidl.lt/"]}
+]

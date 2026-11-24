@@ -1,0 +1,100 @@
+{
+  "updated_at": "2026-11-24T17:15:37.818456+00:00",
+  "sources": [
+    {
+      "store": "Rimi",
+      "status": "ok",
+      "observations": 197,
+      "errors": [],
+      "pages": [
+        {
+          "url": "https://www.rimi.lt/e-parduotuve/lt/paieska?query=pienas",
+          "count": 40,
+          "sha256": "e68a2bce09bbb02fbbf6cbdc920666b6674a3aa714c6c312cd9af4cdef600ffa"
+        },
+        {
+          "url": "https://www.rimi.lt/e-parduotuve/lt/paieska?query=kava",
+          "count": 40,
+          "sha256": "0cd8d65374bc7e44279765dd03ff91bd6d9879275f91edc9ceafda106973d405"
+        },
+        {
+          "url": "https://www.rimi.lt/e-parduotuve/lt/paieska?query=sviestas",
+          "count": 39,
+          "sha256": "46ab0b17155cf53ed62f98fbe1c4d00e3fb13d6895d651ef5ac0646d374b7f4f"
+        },
+        {
+          "url": "https://www.rimi.lt/e-parduotuve/lt/paieska?query=duona",
+          "count": 38,
+          "sha256": "de9cf1dca22589adc4db10b59dc40b9678eab7a0405019dec2c1a6d71cb62f68"
+        },
+        {
+          "url": "https://www.rimi.lt/e-parduotuve/lt/paieska?query=kiausiniai",
+          "count": 40,
+          "sha256": "547bd7dae465fab5f33462cfe4aa243c3e17daba2e27b3129aaa03ffb9641d02"
+        }
+      ],
+      "checked_at": "2026-11-24T17:15:37.818456+00:00"
+    },
+    {
+      "store": "Barbora",
+      "status": "unavailable",
+      "observations": 0,
+      "errors": [
+        "HTTP Error 301: Moved Permanently"
+      ],
+      "pages": [],
+      "checked_at": "2026-11-24T17:15:37.818456+00:00"
+    },
+    {
+      "store": "Varle",
+      "status": "unavailable",
+      "observations": 0,
+      "errors": [
+        "Viešas puslapis pasiekiamas; šios parduotuvės kainų parseris dar neprijungtas"
+      ],
+      "pages": [
+        {
+          "url": "https://www.varle.lt/",
+          "count": 0,
+          "sha256": "af86dc87d58cc0789ebaf10e1940265191516d38716b07df898aab6d2725456c"
+        }
+      ],
+      "checked_at": "2026-11-24T17:15:37.818456+00:00"
+    },
+    {
+      "store": "Senukai",
+      "status": "unavailable",
+      "observations": 0,
+      "errors": [
+        "Viešas puslapis pasiekiamas; šios parduotuvės kainų parseris dar neprijungtas"
+      ],
+      "pages": [
+        {
+          "url": "https://www.senukai.lt/",
+          "count": 0,
+          "sha256": "fffdbf9dd9c53c42dc5d5b91228eb3ea893ed1da9309a80c3d892cb264420702"
+        }
+      ],
+      "checked_at": "2026-11-24T17:15:37.818456+00:00"
+    },
+    {
+      "store": "Lidl",
+      "status": "unavailable",
+      "observations": 0,
+      "errors": [
+        "Viešas puslapis pasiekiamas; šios parduotuvės kainų parseris dar neprijungtas"
+      ],
+      "pages": [
+        {
+          "url": "https://www.lidl.lt/",
+          "count": 0,
+          "sha256": "ffdc2581ac3f6b3872f2177681b5c17ac85e93b3b41697d158e5191c5e473ac1"
+        }
+      ],
+      "checked_at": "2026-11-24T17:15:37.818456+00:00"
+    }
+  ],
+  "total_observations": 189,
+  "products": 189,
+  "new_observations": 189
+}

@@ -1,0 +1,87 @@
+name: Kainų kaupimas ir publikavimas
+on:
+  schedule:
+    - cron: '23 6 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: kainu-tiesa-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python -m unittest discover -v
+      - run: node --test test_core.mjs
+      - run: node --check app.mjs
+  collect:
+    if: github.event_name != 'pull_request'
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Collect public prices (no block circumvention)
+        id: collect
+        continue-on-error: true
+        run: python collector.py --collect
+      - name: Preserve observations and collection status
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/observations.json data/status.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'data: record daily public price observations'
+            git push
+          fi
+      - name: Report a failed collection
+        if: steps.collect.outcome == 'failure'
+        run: |
+          echo 'No fresh prices collected. Previous history preserved; see data/status.json.'
+          exit 1
+  publish:
+    if: always() && github.event_name != 'pull_request' && needs.verify.result == 'success'
+    needs: [verify, collect]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Prepare public files only
+        run: |
+          mkdir -p _site/data
+          cp index.html styles.css app.mjs core.mjs icon.svg _site/
+          cp data/observations.json data/status.json _site/data/
+          touch _site/.nojekyll
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
