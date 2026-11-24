@@ -153,10 +153,10 @@ class PublicClient:
             return data.decode('utf-8')
     def get(self, url):
         parsed = urlparse(url)
-        if parsed.scheme != 'https' or parsed.hostname not in {'www.rimi.lt', 'www.barbora.lt', 'www.varle.lt', 'www.senukai.lt', 'www.lidl.lt', 'aibe.lt'}: raise ValueError('Host not allowed')
+        if parsed.scheme != 'https' or parsed.hostname not in {'www.rimi.lt', 'www.barbora.lt', 'www.varle.lt', 'www.senukai.lt', 'www.lidl.lt', 'aibe.lt', 'leidiniai.rimi.lt'}: raise ValueError('Host not allowed')
         origin = 'https://' + parsed.netloc
         if origin not in self.robots:
-            rp = RobotFileParser(); rp.parse(self.read(origin+'/robots.txt').splitlines()); self.robots[origin] = rp
+            rp = RobotFileParser(); rp.parse(self.read(origin+'/robots.txt').lstrip('\ufeff').splitlines()); self.robots[origin] = rp
         rp = self.robots[origin]
         if not rp.can_fetch(UA, url): raise ValueError('robots.txt disallows this URL')
         delay = rp.crawl_delay(UA) or rp.crawl_delay('*') or 2
@@ -188,6 +188,48 @@ def csv_export(rows):
     return '\ufeff' + stream.getvalue()
 
 
+def check_published_offer(html, record):
+    """Re-check an already reviewed offer; never infer a new price or card condition."""
+    p=Parser(); p.feed(html)
+    text=' '.join(' '.join(n.text().split()) for n in p.root.all() if n.tag=='p')
+    titles=' '.join(n.text() for n in p.root.all() if n.tag in {'title','h1'})
+    required=record.get('required_title_tokens', [])
+    context=record.get('price_context', '')
+    return bool(required and context and all(token in titles for token in required) and context in text and re.search(r'(?<!\d)'+re.escape(record['sku'])+r'(?!\d)', text))
+
+def published_offer_state(html,record):
+    if check_published_offer(html,record): return 'verified'
+    p=Parser();p.feed(html)
+    visible=' '.join(n.text() for n in p.root.all() if n.tag=='p')
+    # Some leaflet responses contain only the first page's text for another page URL.
+    # Missing page text is not evidence that the reviewed price has changed.
+    return 'changed_requires_review' if record['sku'] in visible and record['name'] in visible else 'unavailable'
+
+
+def verify_archives(client=None):
+    client=client or PublicClient();stamp=dt.datetime.now(dt.timezone.utc).isoformat()
+    path=ROOT/'data/archive_offers.json';records=json.loads(path.read_text());cache={};blocked=set();verified=0;errors=[]
+    for r in records:
+        url=r['source'];host=urlparse(url).hostname
+        r['last_checked_at']=stamp
+        try:
+            if host in blocked: raise ValueError('Source host unavailable earlier in this run')
+            if url not in cache:
+                try: cache[url]=client.get(url)
+                except Exception:
+                    blocked.add(host);raise
+            html=cache[url]
+            state=published_offer_state(html,r)
+            if state=='verified':
+                r['source_check']='verified';r['last_verified_at']=stamp;r['evidence_sha256']=hashlib.sha256(html.encode()).hexdigest();verified+=1
+            else:
+                r['source_check']=state;errors.append(('Leidinio kainai reikalinga peržiūra: ' if state=='changed_requires_review' else 'Šaltinio HTML nepateikia šios prekės puslapio teksto: ')+r['sku'])
+        except Exception as e:
+            r['source_check']='unavailable';errors.append(str(e))
+    atomic_json(path,records)
+    return dict(store='Rimi leidiniai',status='ok' if verified==len(records) else 'partial' if verified else 'unavailable',observations=verified,errors=sorted(set(errors)),checked_at=stamp)
+
+
 def collect():
     client = PublicClient(); stamp = dt.datetime.now(dt.timezone.utc).isoformat(); incoming=[]; sources=[]
     config = json.loads((ROOT/'sources.json').read_text())
@@ -204,6 +246,7 @@ def collect():
             except Exception as e:
                 failed=True; errors.append(str(e)); break  # Do not retry a blocked host.
         sources.append(dict(store=store['store'], status='ok' if count and not errors else 'partial' if count else 'unavailable' if failed else 'no_data' if store['parser'] else 'unsupported', observations=count, errors=errors, pages=pages, checked_at=stamp))
+    sources.append(verify_archives(client))
     path = ROOT/'data/observations.json'
     existing = json.loads(path.read_text()) if path.exists() else []
     merged = merge_observations(existing, incoming)
@@ -217,7 +260,9 @@ def collect():
     return bool(incoming)
 
 if __name__ == '__main__':
-    ap=argparse.ArgumentParser(); ap.add_argument('--collect', action='store_true'); ap.add_argument('html', nargs='?'); ap.add_argument('source', nargs='?'); args=ap.parse_args()
+    ap=argparse.ArgumentParser(); ap.add_argument('--collect', action='store_true'); ap.add_argument('--verify-archives', action='store_true'); ap.add_argument('html', nargs='?'); ap.add_argument('source', nargs='?'); args=ap.parse_args()
+    if args.verify_archives:
+        print(json.dumps(verify_archives(),ensure_ascii=False,indent=2));raise SystemExit(0)
     if args.collect: raise SystemExit(0 if collect() else 1)
     if not args.html or not args.source: ap.error('Use --collect or page.html source_url')
     print(json.dumps(extract(Path(args.html).read_text(), args.source), ensure_ascii=False, indent=2))

@@ -38,5 +38,25 @@ test('monthly comparison uses exact day and matching conditions only',async()=>{
  for(const wrong of [{...earlier,observed_at:'2026-10-23T09:00:00Z'},{...earlier,conditions:'loyalty_card'},{...earlier,channel:'in_store_offer'}])assert.equal(monthComparison({...p,history:[wrong,latest]},[],reference).historical,null);
 });
 test('real archived leaflets remain separate from observed monthly price',async()=>{
- const {monthComparison}=await import('./core.mjs');const archives=JSON.parse(readFileSync(new URL('./data/archive_offers.json',import.meta.url)));const p={...actual.find(r=>r.product_id==='rimi:248955'),history:[]};const m=monthComparison(p,archives,now);assert.equal(m.historical,null);assert.equal(m.change,null);assert.equal(m.offers.length,1);assert.equal(m.offers[0].price,'1.19');assert.equal(m.offers[0].conditions,'loyalty_card');assert.equal(monthComparison(p,archives,new Date('2026-12-24T12:00:00Z')).offers.length,0);
+ const {monthComparison}=await import('./core.mjs');const archives=JSON.parse(readFileSync(new URL('./data/archive_offers.json',import.meta.url)));const p={...actual.find(r=>r.product_id==='rimi:248955'),history:[]};const m=monthComparison(p,archives,now);assert.equal(m.historical,null);assert.equal(m.change,null);assert.equal(m.offers.length,1);assert.equal(m.offers[0].price,'1.19');assert.equal(m.offers[0].conditions,'loyalty_card');assert.equal(monthComparison(p,archives,new Date('2026-12-24T12:00:00Z')).offers[0].price,'1.29');assert.equal(monthComparison(p,archives,new Date('2027-01-24T12:00:00Z')).offers.length,0);
+});
+test('same-conditions published comparison uses real source prices and integer cents',async()=>{
+ const {publishedMonthComparisons}=await import('./core.mjs');const records=JSON.parse(readFileSync(new URL('./data/archive_offers.json',import.meta.url)));const rows=publishedMonthComparisons(records,new Date('2026-11-24T18:00:00Z'));
+ assert.equal(rows.length,1);assert.equal(rows[0].product_id,'rimi:248955');assert.equal(rows[0].previous.price,'1.19');assert.equal(rows[0].current.price,'1.29');assert.equal(rows[0].differenceCents,10);assert.equal(rows[0].percent.toFixed(1),'8.4');assert.equal(rows[0].target,'2026-10-24');
+});
+test('conditions, package, quantity, store scope and channels must match',async()=>{
+ const {publishedMonthComparisons}=await import('./core.mjs');const records=JSON.parse(readFileSync(new URL('./data/archive_offers.json',import.meta.url))).filter(r=>r.sku==='248955');const current=records.find(r=>r.valid_from==='2026-11-24'),past=records.find(r=>r.valid_from==='2026-10-20');
+ for(const patch of [{conditions:'public_without_card'},{package:'180 g'},{quantity:2},{store_scope:'express'},{channel:'online'},{store:'Aibė'},{product_id:'rimi:other'}])assert.equal(publishedMonthComparisons([past,{...current,...patch}],new Date('2026-11-24T18:00:00Z')).length,0);
+});
+test('expired or upcoming current leaflet does not become a present-day price',async()=>{
+ const {publishedMonthComparisons}=await import('./core.mjs');const records=JSON.parse(readFileSync(new URL('./data/archive_offers.json',import.meta.url)));assert.equal(publishedMonthComparisons(records,new Date('2026-12-01T12:00:00Z')).length,0);assert.equal(publishedMonthComparisons(records,new Date('2026-11-23T12:00:00Z')).length,0);
+});
+test('conflicting or changed prices require review instead of choosing a convenient price',async()=>{
+ const {publishedMonthComparisons}=await import('./core.mjs');const records=JSON.parse(readFileSync(new URL('./data/archive_offers.json',import.meta.url)));const current=records.find(r=>r.valid_from==='2026-11-24');assert.equal(publishedMonthComparisons([...records,{...current,price:'9.99'}],new Date('2026-11-24T18:00:00Z')).length,0);assert.equal(publishedMonthComparisons(records.map(r=>r===current?{...r,source_check:'changed_requires_review'}:r),new Date('2026-11-24T18:00:00Z')).length,0);
+});
+test('network failure preserves a previously reviewed published offer',async()=>{
+ const {publishedMonthComparisons}=await import('./core.mjs');const records=JSON.parse(readFileSync(new URL('./data/archive_offers.json',import.meta.url))).map(r=>({...r,source_check:'unavailable'}));assert.equal(publishedMonthComparisons(records,new Date('2026-11-24T18:00:00Z')).length,1);
+});
+test('comparison filter never includes products that only have an old leaflet',()=>{
+ const good={...base,leafletComparison:{current:{price:'1.29'}}},missing={...base,product_id:'rimi:missing',monthArchives:[{}]};assert.equal(selectProducts([good,missing],{mode:'compared'}).length,1);
 });

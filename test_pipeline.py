@@ -97,3 +97,26 @@ class AibeTests(unittest.TestCase):
         from collector import csv_export
         rows=self.rows();rows[0]['name']='=1+1';rows[1]['name']='  @SUM(1)'
         text=csv_export(rows);self.assertIn("'=1+1",text);self.assertIn("'  @SUM(1)",text)
+
+class PublishedOfferVerificationTests(unittest.TestCase):
+    def setUp(self):
+        self.record=next(r for r in json.loads((ROOT/'data/archive_offers.json').read_text()) if r['valid_from']=='2026-11-24')
+        self.html='<title>„Rimi“ savaitinis leidinys Nr. 48 (2026.11.24 - 2026.11.30)</title><p>248955 '+self.record['price_context']+'</p>'
+    def test_reviewed_price_context_and_title(self):
+        from collector import check_published_offer
+        self.assertTrue(check_published_offer(self.html,self.record))
+    def test_wrong_price_does_not_rewrite_an_approved_price(self):
+        from collector import check_published_offer
+        self.assertFalse(check_published_offer(self.html.replace('1,29','8,99'),self.record))
+        self.assertEqual(self.record['price'],'1.29')
+    def test_script_only_evidence_is_rejected(self):
+        from collector import check_published_offer
+        self.assertFalse(check_published_offer(self.html.replace('<p>','<script>').replace('</p>','</script>'),self.record))
+    def test_wrong_issue_or_product_rejected(self):
+        from collector import check_published_offer
+        self.assertFalse(check_published_offer(self.html.replace('Nr. 48','Nr. 49'),self.record))
+        self.assertFalse(check_published_offer(self.html.replace('248955','888888'),self.record))
+    def test_missing_page_text_is_not_a_changed_price(self):
+        from collector import published_offer_state
+        self.assertEqual(published_offer_state('<title>Other page</title><p>Other products</p>',self.record),'unavailable')
+        self.assertEqual(published_offer_state(self.html,self.record),'verified')

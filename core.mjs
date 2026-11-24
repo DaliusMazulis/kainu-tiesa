@@ -28,7 +28,7 @@ export function groupProducts(rows, now = new Date()) {
 }
 export function selectProducts(products,{query='',store='',mode='all',sort='name'}={}) {
   const terms=normalize(query).split(/\s+/).filter(Boolean);
-  const out=products.filter(p=>terms.every(t=>normalize(p.name+' '+p.store+' '+p.sku).includes(t)) && (!store||p.store===store) && (mode==='all'||mode==='radar'&&p.advertised>0&&!p.stale&&!p.expired||mode==='drops'&&p.drop>0&&!p.stale&&!p.expired||mode==='archives'&&p.monthArchives?.length>0));
+  const out=products.filter(p=>terms.every(t=>normalize(p.name+' '+p.store+' '+p.sku).includes(t)) && (!store||p.store===store) && (mode==='all'||mode==='radar'&&p.advertised>0&&!p.stale&&!p.expired||mode==='drops'&&p.drop>0&&!p.stale&&!p.expired||mode==='archives'&&p.monthArchives?.length>0||mode==='compared'&&Boolean(p.leafletComparison)));
   return out.sort((a,b)=>sort==='price'?Number(a.price)-Number(b.price):sort==='discount'?b.advertised-a.advertised:a.name.localeCompare(b.name,'lt'));
 }
 export function windowHistory(history, days, now = new Date()) {
@@ -50,6 +50,29 @@ export function monthComparison(product,archives=[],now=new Date()) {
   const target=previousMonthDay(now);
   const observations=(product.history||[]).filter(r=>validRow(r) && r.product_id===product.product_id && r.store===product.store && r.channel===product.channel && r.conditions===product.conditions && ltDay(new Date(r.observed_at))===target);
   const historical=observations.sort((a,b)=>a.observed_at.localeCompare(b.observed_at))[0]||null;
-  const offers=archives.filter(r=>r && r.product_id===product.product_id && r.store===product.store && r.record_type==='published_offer' && r.currency==='EUR' && Number.isFinite(Number(r.price)) && Number(r.price)>0 && isoDay(r.valid_from) && isoDay(r.valid_to) && r.valid_from<=target && target<=r.valid_to && r.source==='https://leidiniai.rimi.lt/2026/weekly/rimi-savaitinis-leidinys-nr-43/' && r.channel==='in_store_leaflet');
+  const offers=archives.filter(r=>r && r.product_id===product.product_id && r.store===product.store && r.record_type==='published_offer' && r.currency==='EUR' && Number.isFinite(Number(r.price)) && Number(r.price)>0 && isoDay(r.valid_from) && isoDay(r.valid_to) && r.valid_from<=target && target<=r.valid_to && officialOffer(r) && r.channel==='in_store_leaflet');
   return {target,historical,offers,change:historical?(Number(product.price)/Number(historical.price)-1)*100:null};
+}
+
+export function officialOffer(r) {
+  if(!r || r.store!=='Rimi' || r.record_type!=='published_offer' || r.verification!=='source_text_and_visual' || r.channel!=='in_store_leaflet' || !/^rimi:\d+$/.test(r.product_id) || r.currency!=='EUR' || !/^\d+\.\d{2}$/.test(String(r.price)) || Number(r.price)<=0 || !isoDay(r.valid_from) || !isoDay(r.valid_to) || r.valid_from>r.valid_to)return false;
+  try{const u=new URL(r.source);return u.protocol==='https:' && u.hostname==='leidiniai.rimi.lt' && !u.username && !u.password && /^\/2026\/weekly\/rimi-savaitinis-leidinys-nr-\d+\/$/.test(u.pathname) && (!u.search || /^\?page=\d+$/.test(u.search));}catch{return false;}
+}
+export function publishedMonthComparisons(records,now=new Date()) {
+  const target=previousMonthDay(now),today=ltDay(now);
+  const approved=records.filter(r=>officialOffer(r) && r.source_check!=='changed_requires_review' && ['loyalty_card','public_without_card'].includes(r.conditions) && r.store_scope==='rimi_hyper_super_excluding_express' && r.quantity===1 && typeof r.package==='string' && r.package.length>0);
+  const basis=r=>[r.product_id,r.store,r.channel,r.conditions,r.store_scope,r.quantity,r.package].join('|');
+  const groups=new Map();for(const r of approved){const key=basis(r);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(r);}
+  const out=[];
+  for(const group of groups.values()){
+    const current=group.filter(r=>r.valid_from<=today && today<=r.valid_to);
+    const previous=group.filter(r=>r.valid_from<=target && target<=r.valid_to);
+    if(!current.length || !previous.length)continue;
+    // Conflicting prices for the same place, period and conditions require review.
+    if(new Set(current.map(r=>r.price)).size!==1 || new Set(previous.map(r=>r.price)).size!==1)continue;
+    const latest=list=>[...list].sort((a,b)=>b.valid_from.localeCompare(a.valid_from)||b.retrieved_at.localeCompare(a.retrieved_at))[0];
+    const a=latest(previous),b=latest(current),before=Math.round(Number(a.price)*100),after=Math.round(Number(b.price)*100);
+    out.push({product_id:b.product_id,name:b.name,store:b.store,conditions:b.conditions,scope:b.store_scope,package:b.package,target,today,previous:a,current:b,differenceCents:after-before,percent:(after-before)/before*100});
+  }
+  return out.sort((a,b)=>a.name.localeCompare(b.name,'lt'));
 }

@@ -56,8 +56,18 @@ Antrame etape patikrinta 388 unikalių prekių (376 „Rimi“, 12 „Aibės“)
 
 ## Kaina prieš mėnesį
 
-Prekės peržiūroje atskirai rodoma kaina tą pačią ankstesnio kalendorinio mėnesio dieną. Trūkstamas mėnesio dienos numeris pakeičiamas paskutine to mėnesio diena. Tiksliam palyginimui būtinas tos pačios prekės, parduotuvės, kanalo ir sąlygų stebėjimas. Kaina neimama iš artimiausios dienos ir nepakeičiama pardavėjo perbraukta kaina.
+Prekės peržiūroje atskirai rodoma kaina tą pačią ankstesnio kalendorinio mėnesio dieną. Trūkstamas mėnesio dienos numeris pakeičiamas paskutine to mėnesio diena. Internetinei kainai prieš mėnesį būtinas tos pačios prekės, parduotuvės, kanalo ir sąlygų stebėjimas. Oficialiai paskelbtų fizinių parduotuvių pasiūlymų palyginimas skaičiuojamas atskirai tik sutampant SKU, pakuotei, kiekiui, kortelės ir parduotuvių aprėpties sąlygoms. Kaina neimama iš artimiausios dienos ir nepakeičiama pardavėjo perbraukta kaina.
 
 `data/archive_offers.json` yra atskiras patikrintų oficialių leidinių registras. Pradiniai du įrašai patikrinti oficialaus „Rimi“ leidinio Nr.43 (2026-10-20–26) pirmame puslapyje: sviestas 248955 – 1,19 EUR su kortele, antienos filė 998018 – 2,89 EUR su sąlygomis leidinyje. Fiksuojama tikroji patikros data (`retrieved_at`), leidinio galiojimas ir puslapis. Tai nėra tariami kasdieniai stebėjimai; į `observations.json` ir grafikų kreives jie neįrašomi. Parduotuvės fizinio leidinio kaina ir šiandieninė internetinė kaina nėra vienodų sąlygų palyginimas.
 
 Ankstesnių leidinių registras kol kas pildomas patikrinus šaltinį. Automatinis masinis istorinių leidinių nuskaitymas ir visų prekių mėnesio istorijos atkūrimas dar neįgyvendinti. Patvirtinti šaltiniai rodomi filtre „Ankstesni leidiniai“.
+
+## Patikrintas leidinių mėnesio palyginimas
+
+2026-11-24 pridėta pirmoji palyginama pora: ROKIŠKIO sviestas, 82 %, 200 g, SKU 248955. 2026-10-24 galiojęs Nr.43 leidinys skelbė 1,19 EUR, 2026-11-24 galiojantis Nr.48 (4 psl.) skelbia 1,29 EUR. Abi kainos su „Mano Rimi“ kortele, perkant vieną 200 g pakuotę, „Hyper“ ir „Super“ parduotuvėse, išskyrus „Express“. Sąlygų legendos patikrintos Nr.43 42 psl. ir Nr.48 40 psl. Skirtumas +0,10 EUR (+8,4 %). Tai leidiniuose paskelbtų pasiūlymų palyginimas, ne visų kasos operacijų ar internetinių kainų istorija.
+
+Palyginimai rodomi puslapio viršuje ir pagal numatytąjį katalogo filtrą. Pasibaigus dabartinio leidinio galiojimui, pora neberodoma kaip dabartinė. Skirtingos kortelės, pakuotės, kanalo, kiekio ar parduotuvių sąlygos atmetamos. Konfliktuojančioms kainoms reikalinga peržiūra.
+
+Kasdienis rinkimas pakartotinai tikrina patvirtintų įrašų pavadinimą, SKU, leidinio datą ir konkrečią kainos teksto aplinką. Jis neatspėja naujų kainų. Kai iPaper HTML vietoje reikiamo puslapio pateikia tik pirmo puslapio tekstą, tai žymima nepasiekiamu pakartotiniu patikrinimu, o ne tariamu kainos pasikeitimu. Anksčiau vizualiai patikrintas leidinio pasiūlymas išsaugomas iki deklaruoto galiojimo pabaigos, su būsenos informacija. Įrodytiems kainos neatitikimams pora pašalinama iš palyginimų iki peržiūros.
+
+Patikrinta: 28 Python ir 21 JavaScript testas. Kol kas turime vieną patikrintą palyginamą porą; masinis visų prekių istorinių kainų atkūrimas dar neįgyvendintas.

@@ -47,7 +47,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add data/observations.json data/observations.csv data/status.json
+          git add data/observations.json data/observations.csv data/status.json data/archive_offers.json
           if ! git diff --cached --quiet; then
             git commit -m 'data: record daily public price observations'
             git push
